@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>San Valentín BB</title>
     <link rel="icon" href="icono.png" type="image/x-icon">
     <style>
@@ -378,6 +378,7 @@
             background: radial-gradient(ellipse at top, #2d0f3f, #13071f);
             image-rendering: crisp-edges;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7);
+            touch-action: none;
         }
 
         canvas:hover {
@@ -1753,6 +1754,11 @@
             3: 'perfect.mp3'
         };
 
+        // Detectar si es móvil
+        function isMobile() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+        }
+
         // ==================== FUNCIONES DE AUDIO OPTIMIZADAS ====================
         function playLevelMusic(level) {
             const songPath = LEVEL_SONGS[level];
@@ -2592,26 +2598,24 @@
         }
 
         function adjustForMobileVertical() {
-            if (isMobileVertical()) {
+            if (isMobile()) {
                 DOM.canvas.width = 600;
                 DOM.canvas.height = 900;
                 
-                playerPosX = DOM.canvas.width / 2 - 40;
-                playerPosY = DOM.canvas.height - 150;
-                playerMoveSpeed = 12;
                 playerWidth = 70;
                 playerHeight = 70;
                 playerPosX = DOM.canvas.width / 2 - playerWidth / 2;
+                playerPosY = DOM.canvas.height - 150;
+                playerMoveSpeed = 12;
             } else {
                 DOM.canvas.width = 900;
                 DOM.canvas.height = 600;
                 
-                playerPosX = DOM.canvas.width / 2 - 40;
-                playerPosY = DOM.canvas.height - 120;
-                playerMoveSpeed = 7;
                 playerWidth = 80;
                 playerHeight = 80;
                 playerPosX = DOM.canvas.width / 2 - playerWidth / 2;
+                playerPosY = DOM.canvas.height - 120;
+                playerMoveSpeed = 7;
             }
         }
 
@@ -2707,7 +2711,7 @@
             showRomanticMessage();
         });
 
-        window.addEventListener('resize', adjustForMobileVertical);
+        
 
         // ==================== BOTÓN DE INICIO ====================
         DOM.startBtn.addEventListener('click', () => {
@@ -2730,6 +2734,148 @@
             initMusicWithUserInteraction();
             gameLoop();
         });
+
+        // ==================== CONTROLES TÁCTILES PARA MÓVIL ====================
+let touchActive = false;
+let touchX = 0;
+
+DOM.canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    touchActive = true;
+    const touch = e.touches[0];
+    const rect = DOM.canvas.getBoundingClientRect();
+    const scaleX = DOM.canvas.width / rect.width;
+    touchX = (touch.clientX - rect.left) * scaleX;
+    
+    // Disparar con toque
+    if (isGameRunning) fireBullet();
+});
+
+DOM.canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (!touchActive || !isGameRunning) return;
+    const touch = e.touches[0];
+    const rect = DOM.canvas.getBoundingClientRect();
+    const scaleX = DOM.canvas.width / rect.width;
+    touchX = (touch.clientX - rect.left) * scaleX;
+    
+    // Mover jugador a la posición del toque
+    playerPosX = Math.min(Math.max(touchX - playerWidth/2, 0), DOM.canvas.width - playerWidth);
+});
+
+DOM.canvas.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    touchActive = false;
+});
+
+DOM.canvas.addEventListener('touchcancel', (e) => {
+    e.preventDefault();
+    touchActive = false;
+});
+
+// BOTONES VIRTUALES PARA MÓVIL
+function createMobileControls() {
+    if (!isMobile() || document.getElementById('mobileControls')) return;
+    
+    const controlsDiv = document.createElement('div');
+    controlsDiv.id = 'mobileControls';
+    controlsDiv.style.cssText = `
+        position: fixed;
+        bottom: 15px;
+        left: 0;
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        padding: 0 15px;
+        box-sizing: border-box;
+        z-index: 1000;
+        pointer-events: none;
+    `;
+    
+    const leftBtn = document.createElement('button');
+    leftBtn.innerHTML = '←';
+    leftBtn.style.cssText = `
+        width: 65px;
+        height: 65px;
+        border-radius: 50%;
+        background: rgba(255, 105, 180, 0.9);
+        border: 3px solid white;
+        color: white;
+        font-size: 30px;
+        font-weight: bold;
+        pointer-events: auto;
+        box-shadow: 0 5px 15px rgba(255, 20, 147, 0.5);
+    `;
+    
+    const rightBtn = document.createElement('button');
+    rightBtn.innerHTML = '→';
+    rightBtn.style.cssText = leftBtn.style.cssText;
+    
+    const fireBtn = document.createElement('button');
+    fireBtn.innerHTML = '❤️';
+    fireBtn.style.cssText = `
+        width: 75px;
+        height: 75px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #FF1493, #FF69B4);
+        border: 4px solid white;
+        color: white;
+        font-size: 35px;
+        pointer-events: auto;
+        box-shadow: 0 5px 20px rgba(255, 20, 147, 0.8);
+        transform: translateY(-5px);
+    `;
+    
+    leftBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        pressedKeys['arrowleft'] = true;
+    });
+    
+    leftBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        pressedKeys['arrowleft'] = false;
+    });
+    
+    rightBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        pressedKeys['arrowright'] = true;
+    });
+    
+    rightBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        pressedKeys['arrowright'] = false;
+    });
+    
+    fireBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (isGameRunning) fireBullet();
+    });
+    
+    controlsDiv.appendChild(leftBtn);
+    controlsDiv.appendChild(fireBtn);
+    controlsDiv.appendChild(rightBtn);
+    document.body.appendChild(controlsDiv);
+}
+
+// Llamar a createMobileControls cuando sea necesario
+window.addEventListener('load', () => {
+    if (isMobile()) {
+        setTimeout(createMobileControls, 500);
+    }
+});
+
+window.addEventListener('resize', () => {
+    if (isMobile()) {
+        adjustForMobileVertical();
+        if (!document.getElementById('mobileControls')) {
+            createMobileControls();
+        }
+    } else {
+        const existing = document.getElementById('mobileControls');
+        if (existing) existing.remove();
+    }
+});
+
     </script>
 </body>
 </html>
